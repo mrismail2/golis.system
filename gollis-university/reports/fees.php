@@ -44,17 +44,20 @@ $byMethod = db_all(
     [$academicYear]
 );
 
+// grouped in a sub-query so the outstanding balance can be filtered and sorted on
 $debtors = db_all(
-    "SELECT s.reg_no, s.full_name, s.id AS student_id, d.name AS department,
-            SUM(f.amount) AS billed,
-            COALESCE(SUM((SELECT SUM(p.amount) FROM payments p WHERE p.fee_id = f.id)), 0) AS paid
-     FROM fees f
-     JOIN students s         ON s.id = f.student_id
-     LEFT JOIN departments d ON d.id = s.department_id
-     WHERE f.academic_year = ?
-     GROUP BY s.id, s.reg_no, s.full_name, d.name
-     HAVING billed > paid
-     ORDER BY (billed - paid) DESC
+    "SELECT * FROM (
+         SELECT s.reg_no, s.full_name, s.id AS student_id, d.name AS department,
+                SUM(f.amount) AS billed,
+                COALESCE(SUM((SELECT SUM(p.amount) FROM payments p WHERE p.fee_id = f.id)), 0) AS paid
+         FROM fees f
+         JOIN students s         ON s.id = f.student_id
+         LEFT JOIN departments d ON d.id = s.department_id
+         WHERE f.academic_year = ?
+         GROUP BY s.id, s.reg_no, s.full_name, d.name
+     ) AS totals
+     WHERE totals.billed > totals.paid
+     ORDER BY (totals.billed - totals.paid) DESC
      LIMIT 15",
     [$academicYear]
 );
