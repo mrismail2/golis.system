@@ -1,0 +1,116 @@
+<?php
+/** Results - printable academic transcript for one student. */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/auth.php';
+require_login();
+
+$studentId = get_int('student_id') ?: (int)(current_student_id() ?? 0);
+require_student_access($studentId);
+
+$student = db_row(
+    "SELECT s.*, d.name AS department
+     FROM students s
+     LEFT JOIN departments d ON d.id = s.department_id
+     WHERE s.id = ?",
+    [$studentId]
+);
+
+if (!$student) {
+    flash('That student record no longer exists.', 'error');
+    redirect(is_student() ? 'dashboard.php' : 'students/index.php');
+}
+
+$sql = "SELECT r.*, c.code, c.title, c.credit_hours
+        FROM results r
+        JOIN courses c ON c.id = r.course_id
+        WHERE r.student_id = ?" . (is_student() ? " AND r.is_published = 1" : "") . "
+        ORDER BY r.academic_year, r.semester, c.code";
+$rows = db_all($sql, [$studentId]);
+
+// group by term and work out the GPA of each term
+$terms = [];
+foreach ($rows as $row) {
+    $key = $row['academic_year'] . '|' . $row['semester'];
+    $terms[$key]['label']    = $row['academic_year'] . ' · Semester ' . (int)$row['semester'];
+    $terms[$key]['rows'][]   = $row;
+    $terms[$key]['credits']  = ($terms[$key]['credits'] ?? 0) + (int)$row['credit_hours'];
+    $terms[$key]['points']   = ($terms[$key]['points'] ?? 0) + (float)$row['grade_points'] * (int)$row['credit_hours'];
+}
+
+$totalCredits = array_sum(array_column($terms, 'credits'));
+$totalPoints  = array_sum(array_column($terms, 'points'));
+$cgpa         = $totalCredits ? $totalPoints / $totalCredits : 0;
+
+$pageTitle    = 'Academic transcript';
+$pageSubtitle = $student['full_name'] . ' · ' . $student['reg_no'];
+$pageActions  = '<button class="btn-sm btn-ghost no-print" type="button" onclick="window.print()">🖨️ Print</button>'
+    . (is_student() ? '' : '<a class="btn-sm btn-ghost" href="' . url('students/view.php?id=' . $studentId) . '">Student record</a>');
+
+require_once APP_ROOT . '/includes/header.php';
+?>
+
+<div class="panel">
+  <div class="panel-head">
+    <div>
+      <h2><?= e(APP_NAME) ?> &ndash; <?= e(APP_CAMPUS) ?></h2>
+      <p>Official academic transcript · printed <?= e(fdate(date('Y-m-d'))) ?></p>
+    </div>
+    <img src="<?= url('assets/images/logo.jpg') ?>" alt="logo" style="width:64px;height:64px;border-radius:50%;object-fit:cover">
+  </div>
+
+  <dl class="data-list">
+    <div><dt>Student name</dt><dd><?= e($student['full_name']) ?></dd></div>
+    <div><dt>Registration no</dt><dd><?= e($student['reg_no']) ?></dd></div>
+    <div><dt>Department</dt><dd><?= e($student['department'] ?: '-') ?></dd></div>
+    <div><dt>Year of study</dt><dd>Year <?= (int)$student['year_of_study'] ?></dd></div>
+    <div><dt>Status</dt><dd><?= e(ucfirst($student['status'])) ?></dd></div>
+    <div><dt>Cumulative GPA</dt><dd><strong><?= number_format($cgpa, 2) ?></strong> of 4.00 · <?= (int)$totalCredits ?> credit hours</dd></div>
+  </dl>
+</div>
+
+<?php foreach ($terms as $term): ?>
+  <?php $termGpa = $term['credits'] ? $term['points'] / $term['credits'] : 0; ?>
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2><?= e($term['label']) ?></h2><p>Semester GPA <?= number_format($termGpa, 2) ?> · <?= (int)$term['credits'] ?> credit hours</p></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Code</th><th>Course</th><th class="center">Credits</th><th class="center">Coursework</th>
+              <th class="center">Exam</th><th class="center">Total</th><th class="center">Grade</th><th class="center">Points</th><th>Remark</th></tr>
+        </thead>
+        <tbody>
+        <?php foreach ($term['rows'] as $row): ?>
+          <tr>
+            <td><span class="pill"><?= e($row['code']) ?></span></td>
+            <td><?= e($row['title']) ?></td>
+            <td class="center"><?= (int)$row['credit_hours'] ?></td>
+            <td class="center"><?= number_format((float)$row['coursework'], 1) ?></td>
+            <td class="center"><?= number_format((float)$row['exam_marks'], 1) ?></td>
+            <td class="center"><strong><?= number_format((float)$row['total_marks'], 1) ?></strong></td>
+            <td class="center"><strong><?= e($row['grade']) ?></strong></td>
+            <td class="center"><?= number_format((float)$row['grade_points'], 2) ?></td>
+            <td><?= status_badge((float)$row['total_marks'] >= PASS_MARK ? 'pass' : 'fail') ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<?php endforeach; ?>
+
+<?php if (!$terms): ?>
+  <div class="panel"><p class="table-empty">No results have been published for this student yet.</p></div>
+<?php endif; ?>
+
+<div class="panel">
+  <p class="hint">
+    Grading scale: 90+ A+ · 85-89 A · 80-84 A- · 75-79 B+ · 65-74 B · 60-64 C+ · 55-59 C · 50-54 D · below 50 F.
+    The pass mark is <?= PASS_MARK ?>. This transcript is generated by the campus management system.
+  </p>
+</div>
+
+<?php require_once APP_ROOT . '/includes/footer.php'; ?>
