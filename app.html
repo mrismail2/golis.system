@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="assets/css/style.css">
+	<title>SmileCare Dental — Workspace</title>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside id="sidebar">
+	<a href="#/dashboard" class="brand">
+		<span class="mark"><i class='bx bxs-tooth'></i></span>
+		<span class="name">
+			SmileCare
+			<small>Dental Clinic</small>
+		</span>
+	</a>
+
+	<div class="side-scroll">
+		<p class="side-label">Maalinlaha</p>
+		<ul class="side-menu" id="menuMain"></ul>
+
+		<p class="side-label">Maamulka</p>
+		<ul class="side-menu" id="menuAdmin"></ul>
+	</div>
+
+	<div class="side-foot">
+		<div class="doc-card">
+			<img src="ismail.image.jpg" alt="" id="sideAvatar">
+			<div class="who">
+				<b id="sideName">Dr. Ismail C. Ahmed</b>
+				<span id="sideRole">Lead Dentist</span>
+			</div>
+		</div>
+	</div>
+</aside>
+<div class="scrim" id="scrim"></div>
+
+<!-- ===== CONTENT ===== -->
+<div id="content">
+	<header class="topbar">
+		<i class='bx bx-menu menu-btn' id="menuBtn"></i>
+
+		<div class="searchbox">
+			<i class='bx bx-search'></i>
+			<input type="search" id="globalSearch" placeholder="Raadi bukaan, ballan ama fatuurad...">
+		</div>
+
+		<div class="spacer"></div>
+
+		<div class="clinic-open">
+			<span class="badge badge--success">Clinic-ku waa furan yahay</span>
+		</div>
+
+		<button class="icon-btn" id="themeBtn" title="Beddel muuqaalka"><i class='bx bx-moon'></i></button>
+
+		<button class="icon-btn" id="bellBtn" title="Digniinaha">
+			<i class='bx bx-bell'></i>
+			<span class="dot">3</span>
+		</button>
+
+		<div class="me" id="meBtn">
+			<img src="ismail.image.jpg" alt="" id="topAvatar">
+			<div>
+				<b id="topName">Dr. Ismail C. Ahmed</b>
+				<span id="topRole">Lead Dentist</span>
+			</div>
+			<i class='bx bx-chevron-down'></i>
+		</div>
+	</header>
+
+	<main id="view"><!-- views render here --></main>
+</div>
+
+<!-- ===== MODAL + TOASTS ===== -->
+<div class="overlay" id="overlay">
+	<div class="modal" id="modal"></div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
